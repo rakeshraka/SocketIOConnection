@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Client</title>   
+	<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	
+    <style>
+        body {
+            padding: 20px;
+        }
+
+        #console {
+            height: 400px;
+            overflow: auto;
+        }
+
+        .username-msg {
+            color: orange;
+        }
+
+        .connect-msg {
+            color: green;
+        }
+
+        .disconnect-msg {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Chat Client</h1>
+<br/>
+
+<div id="console" class="well"></div>
+
+<form class="well form-inline" onsubmit="return false;">
+    <input id="msg" class="input-xlarge" type="text" placeholder="Type something..."/>
+    <button type="button" onClick="sendMessage()" class="btn" id="send">Send</button>
+    <button type="button" onClick="sendDisconnect()" class="btn">Disconnect</button>
+</form>
+ 
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js" integrity="sha512-7IDZ+mHVoc7nSziUi72L5rGojJDtveVWHOjb+Eu8QSnguy5FitNnFyEoLoL3v1u18DNm4E30elDfkhZvVADw6Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<script>
+    var userName = 'user' + Math.floor((Math.random() * 1000) + 1);
+    var socket = io('http://localhost:9092/chat?token=abc123', {
+        transports: ['polling', 'websocket']
+    });
+    socket.on('connect', function () {
+        output('<span class="connect-msg">The client has connected with the server. Username: ' + userName + '</span>');
+    });
+    socket.on('chat', function (data) {
+        console.log('Received message', data);
+        output('<span class="username-msg">' + data.userName + ':</span> ' + data.message);
+    });
+    socket.on('disconnect', function () {
+        output('<span class="disconnect-msg">The client has disconnected!</span>');
+    });
+    socket.on('reconnect_attempt', (attempts) => {
+        console.log('Try to reconnect at ' + attempts + ' attempt(s).');
+    });
+
+    function sendDisconnect() {
+		console.log("Connection disconnected");
+        socket.disconnect();
+    }
+
+    function sendMessage() {
+        var $msg = $('#msg');
+        var message = $msg.val();
+        $msg.val('');
+        var jsonObject = {userName: userName, message: message, actionTime: new Date()};
+        socket.emit('chat', jsonObject);
+		console.log("msg emitted");
+    }
+
+    function output(message) {
+        var currentTime = "<span class='time'>" + moment().format('HH:mm:ss') + "</span>";
+        var element = $("<div>" + currentTime + " " + message + "</div>");
+        $('#console').prepend(element);
+    }
+
+    $(document).keydown(function (e) {
+        if (e.keyCode == 13) {
+            $('#send').click();
+        }
+    });
+</script>
+</body>
+</html>
